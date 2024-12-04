@@ -118,14 +118,11 @@ func newPowermon(action string) (*powermon, error) {
 	return p, nil
 }
 
-func (p *powermon) logState() {
-	maybeLog("power state: %s", p.state)
-}
-
 func (p *powermon) stateChange() {
-	p.logState()
-
 	s := p.state.String()
+
+	maybeLog("power state: %s", s)
+
 	maybeLog("running command: %s %s", p.action, s)
 	if out, err := exec.Command(p.action, s).CombinedOutput(); err != nil {
 		maybeLog("error running '%s %s': %v", p.action, s, err)
