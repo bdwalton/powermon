@@ -54,25 +54,40 @@ func (ps powerState) String() string {
 type powermon struct {
 	// An executable command that will be run, passed an argument
 	// of battery or ac to allow the command to act accordingly
-	action   string
-	dbusConn *dbus.Conn
-	state    powerState
-	quitCh   chan struct{}
+	action          string
+	sysBus, sessBus *dbus.Conn
+	state           powerState
+	quitCh          chan struct{}
 }
 
 const (
+	pmon       = "org.bdwalton.Powermon"
 	upower     = "org.freedesktop.UPower"
 	upowerPath = "/org/freedesktop/UPower"
 	onBattery  = "OnBattery"
 )
 
 func newPowermon(action string) (*powermon, error) {
-	conn, err := dbus.ConnectSystemBus()
+	sessBus, err := dbus.ConnectSessionBus()
+	if err != nil {
+		return nil, fmt.Errorf("session bus connect failed: %v", err)
+	}
+
+	// Ensure only a single copy is registered and running
+	r, err := sessBus.RequestName(pmon, dbus.NameFlagDoNotQueue)
+	if err != nil {
+		return nil, fmt.Errorf("sessBus.RequestName(%q, 0): %v:", pmon, err)
+	}
+	if r != dbus.RequestNameReplyPrimaryOwner {
+		return nil, fmt.Errorf("sessBus.RequestName(%q, 0): not the primary owner.", pmon)
+	}
+
+	sysBus, err := dbus.ConnectSystemBus()
 	if err != nil {
 		return nil, fmt.Errorf("system bus connect failed: %v", err)
 	}
 
-	obj := conn.Object(upower, upowerPath)
+	obj := sysBus.Object(upower, upowerPath)
 	var state powerState = UNKNOWN
 	if ps, err := obj.GetProperty(upower + "." + onBattery); err != nil {
 		reallyLog("failed to get battery state: %v", err)
@@ -87,15 +102,16 @@ func newPowermon(action string) (*powermon, error) {
 	}
 
 	p := &powermon{
-		dbusConn: conn,
-		state:    state,
-		action:   action,
-		quitCh:   make(chan struct{}),
+		sysBus:  sysBus,
+		sessBus: sessBus,
+		state:   state,
+		action:  action,
+		quitCh:  make(chan struct{}),
 	}
 
 	p.stateChange()
 
-	if err := p.dbusConn.AddMatchSignal(dbus.WithMatchObjectPath(upowerPath), dbus.WithMatchInterface("org.freedesktop.DBus.Properties"), dbus.WithMatchSender(upower)); err != nil {
+	if err := p.sysBus.AddMatchSignal(dbus.WithMatchObjectPath(upowerPath), dbus.WithMatchInterface("org.freedesktop.DBus.Properties"), dbus.WithMatchSender(upower)); err != nil {
 		return nil, fmt.Errorf("couldn't setup signal listener: %v", err)
 	}
 
@@ -121,9 +137,9 @@ func (p *powermon) run() {
 	defer close(p.quitCh)
 
 	c := make(chan *dbus.Signal, 10)
-	p.dbusConn.Signal(c)
+	p.sysBus.Signal(c)
 
-	maybeLog("running...")
+	maybeLog("polling...")
 	for {
 		select {
 		case sig := <-c:
@@ -147,7 +163,8 @@ func (p *powermon) run() {
 func (p *powermon) shutdown() {
 	p.quitCh <- struct{}{}
 	<-p.quitCh
-	p.dbusConn.Close()
+	p.sysBus.Close()
+	p.sessBus.Close()
 }
 
 func main() {
