@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 
 	"github.com/godbus/dbus/v5"
-	"os/exec"
 )
 
 var (
