@@ -175,11 +175,6 @@ func main() {
 		log.SetOutput(lf)
 	}
 
-	if *actionCmd == "" {
-		maybeLog("No action to run on state change. Pass --action='/some/command'.")
-		os.Exit(1)
-	}
-
 	prog, err := os.Executable()
 	if err != nil {
 		maybeLog("Error determining program executable: %v\n", err)
@@ -187,6 +182,11 @@ func main() {
 	}
 
 	log.SetPrefix(filepath.Base(prog) + ": ")
+
+	if *actionCmd == "" {
+		maybeLog("No action to run on state change. Pass --action='/some/command'.")
+		os.Exit(1)
+	}
 
 	pm, err := newPowermon(*actionCmd)
 	if err != nil {
