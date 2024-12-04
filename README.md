@@ -1,4 +1,4 @@
-# inhibit-bridge
+# powermon
 
 This is a little utility to monitor power state changes between AC and BATTERY,
 running a command any time there is a state transition. This allows you to
