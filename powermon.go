@@ -141,15 +141,19 @@ func (p *powermon) run() {
 		select {
 		case sig := <-c:
 			val := sig.Body[1].(map[string]dbus.Variant)
-			switch val[onBattery].String() {
-			case "true":
-				p.state = ON_BATTERY
-			case "false":
-				p.state = AC_POWER
-			default:
-				p.state = UNKNOWN
+			// we get lidclosed events too, so filter to
+			// ensure the current signal is interesting
+			if v, ok := val[onBattery]; ok {
+				switch v.String() {
+				case "true":
+					p.state = ON_BATTERY
+				case "false":
+					p.state = AC_POWER
+				default:
+					p.state = UNKNOWN
+				}
+				p.stateChange()
 			}
-			p.stateChange()
 		case <-p.quitCh:
 			maybeLog("shutting down main loop")
 			return
