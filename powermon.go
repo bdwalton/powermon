@@ -105,7 +105,7 @@ func newPowermon(action string) (*powermon, error) {
 		sysBus:  sysBus,
 		sessBus: sessBus,
 		state:   state,
-		action:  action,
+		action:  os.ExpandEnv(action),
 		quitCh:  make(chan struct{}),
 	}
 
