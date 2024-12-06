@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	// CLI Flags
 	actionCmd = flag.String("action", "", "Run this command when 'on battery' state changes")
 	logfile   = flag.String("logfile", "", "If set, log to this path instead of the default (os.Stderr) target")
 	verbose   = flag.Bool("verbose", false, "If true, output logging status updates. Be quiet when false.")
