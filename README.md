@@ -8,6 +8,18 @@ saving while on battery and switch back to full performance when plugged in.
 The script that is executed should accept a single argument, which will be one
 of "UNKNOWN", "ON_BATTERY" or "AC_POWER".
 
+## Flags
+
+- action
+  - an executable to run, which accepts a single parameter
+  - environment variable expansion is done on the value of the string
+
+- logfile
+  - a path to send log output to
+
+- verbose
+  - enable logging
+
 
 ## License
 
